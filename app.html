@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html class="noscroll">
+<head>
+	<script src="jquery-2.1.3.min.js"></script>
+	<script src="js/bootstrap.min.js"></script>
+	<script src="bootstrap-datepicker.js"></script>
+	<script src="lspoly.js"></script>
+	<script src="Dexie.min.js"></script>
+	<script src="stupidtable.min.js"></script>
+	<script src="app.js"></script>
+	<link href="css/bootstrap.css" rel="stylesheet">
+	<link href="bootstrap-datepicker.css" rel="stylesheet">
+	<style type="text/css">
+		html .container {
+			width: auto !important;
+			margin: 0 10px;
+		}
+
+		html.noscroll {
+			overflow-y: hidden;
+		}
+
+		html {
+			overflow-y: scroll;
+		}
+
+		.main {
+			margin-top:64px !important;
+			margin-bottom:64px !important;
+		}
+
+		.checkbox {
+			display: inline-block !important;
+			line-height: 30px;
+			margin: 0 !important;
+		}
+
+		.checkbox label {
+			line-height: 30px;
+			margin-right: 5px;
+		}
+
+		.checkbox label input {
+			margin-top: 9px;
+		}
+
+		#datepicker {
+			float: left;
+			margin-right: 10px;
+		}
+
+		#loading, #refreshing {
+			z-index:99998;
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background-color: #fff;
+			font-family: Helvetica, Arial, 'lucida grande',tahoma,verdana,arial,sans-serif;
+			text-align: center;
+			font-size: 64px;
+			font-weight: bold;
+			line-height: 280px;
+			color: #ccc;
+		}
+
+		#refreshing {
+			display:none;
+		}
+
+		webview {
+			z-index:99999;
+			position: absolute;
+			left: -10000px;
+			top:0;
+			width: 100%;
+			height: 100%;
+		}
+
+		#tablewrapper {
+			/*height: 360px;
+			overflow-y: scroll;*/
+		}
+
+		th {
+			cursor: pointer;
+		}
+
+		th .glyphicon {
+			color: #ccc;
+		}
+
+		th:hover .glyphicon {
+			color: #333;
+		}
+
+		th .glyphicon-sort-by-alphabet,
+		th .glyphicon-sort-by-alphabet-alt,
+		th .glyphicon-sort-by-order,
+		th .glyphicon-sort-by-order-alt,
+		th.sorting-desc .glyphicon-sort,
+		th.sorting-asc .glyphicon-sort {
+			display: none;
+		}
+
+		th.sorting-asc .glyphicon-sort-by-alphabet,
+		th.sorting-desc .glyphicon-sort-by-alphabet-alt,
+		th.sorting-asc .glyphicon-sort-by-order,
+		th.sorting-desc .glyphicon-sort-by-order-alt,
+		th .glyphicon-sort {
+			display: inline;
+		}
+
+	</style>
+</head>
+<body>
+	<div id="loading">
+		Loading...
+	</div>
+	<div id="refreshing">
+		Refreshing...
+
+		<div class="progress" style="margin: 0 40px;"><div id="progress" class="progress-bar" role="progressbar" style="width: 60%;"></div></div>
+	</div>
+	<webview partition="persist:tip" id="login_webview" src="http://www.myfreecams.com/mfc2/php/login.php?request=login"></webview>
+	<webview partition="persist:tip" id="fetch_webview"></webview>
+
+
+	<div class="navbar navbar-default navbar-fixed-bottom">
+		<div class="navbar-inner">
+			<div class="container">
+				<ul class="nav pull-right">
+					<li><p class="navbar-text"><span class='username'></span> <button id="logout">Logout</button></p></li>
+				</ul>
+				<ul class="nav pull-left">
+					<li><p class="navbar-text">Last Update: <span class='refresh'>Never</span> <button id="refresh">Refresh</button></p></li>
+				</ul>
+			</div>
+		</div>
+	</div>
+		
+	<div class="navbar navbar-default navbar-fixed-top">
+		<div class="navbar-inner">
+			<div class="container">
+				<p class="navbar-text">
+				<form class="form-inline">
+					<span class="input-daterange input-group" id="datepicker">
+						<input id="start-date" style="width: 120px;" type="text" class="input-sm form-control" name="start" value="01/01/2007" />
+						<span class="input-group-addon">to</span>
+						<input id="end-date" style="width: 120px;" type="text" class="input-sm form-control" name="end" />
+					</span>
+					<div class="checkbox">
+						<label>
+							<input id="otip" type="checkbox" checked /> Tip
+						</label>
+					</div>
+					<div class="checkbox">
+						<label>
+							<input id="oprivate" type="checkbox" checked /> Private
+						</label>
+					</div>
+					<div class="checkbox">
+						<label>
+							<input id="ogroup" type="checkbox" checked /> Group
+						</label>
+					</div>
+					<div class="checkbox">
+						<label>
+							<input id="ovoyeur" type="checkbox" checked /> Voyeur
+						</label>
+					</div>
+				</form>
+				</p>
+			</div>
+		</div>
+	</div>
+
+	<div class="main container">
+		<div id="tablewrapper">
+		<table class="table table-condensed table-hover">
+			<thead>
+				<tr>
+					<th data-sort="string-ins">Model&nbsp;&nbsp;<span class="glyphicon glyphicon-sort"></span><span class="glyphicon glyphicon glyphicon-sort-by-alphabet"></span><span class="glyphicon glyphicon glyphicon-sort-by-alphabet-alt"></span></th>
+					<th data-sort="int" data-sort-default="desc">Count&nbsp;&nbsp;<span class="glyphicon glyphicon-sort"></span><span class="glyphicon glyphicon glyphicon-sort-by-order"></span><span class="glyphicon glyphicon glyphicon-sort-by-order-alt"></span></th>
+					<th data-sort="float" data-sort-default="desc">Average&nbsp;&nbsp;<span class="glyphicon glyphicon-sort"></span><span class="glyphicon glyphicon glyphicon-sort-by-order"></span><span class="glyphicon glyphicon glyphicon-sort-by-order-alt"></span></th>
+					<th data-sort="int" data-sort-default="desc">High&nbsp;&nbsp;<span class="glyphicon glyphicon-sort"></span><span class="glyphicon glyphicon glyphicon-sort-by-order"></span><span class="glyphicon glyphicon glyphicon-sort-by-order-alt"></span></th>
+					<th data-sort="int">Low&nbsp;&nbsp;<span class="glyphicon glyphicon-sort"></span><span class="glyphicon glyphicon glyphicon-sort-by-order"></span><span class="glyphicon glyphicon glyphicon-sort-by-order-alt"></span></th>
+					<th data-sort="int" data-sort-default="desc">Total&nbsp;&nbsp;<span class="glyphicon glyphicon-sort"></span><span class="glyphicon glyphicon glyphicon-sort-by-order"></span><span class="glyphicon glyphicon glyphicon-sort-by-order-alt"></span></th>
+				</tr>
+			</thead>
+			<tbody></tbody>
+			<tfoot></tfoot>
+		</table>
+		</div>
+	</div>
+
+
+
+</body>
+</html>
